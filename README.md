@@ -13,15 +13,15 @@ LUTD_IMPLEMENT(N, A, T, M, H, C, F);
 ```
 1. `N` - **N**ame - the resulting name of the lookup table struct
 2. `A` - **A**bbreviation - functions get prefixed with that
-3. `T` - **T**ype - the type your elements within the lookup table
+3. `T` - **T**ype - the type of your elements within the lookup table
 4. `M` - **M**ode - storage type, either `BY_VAL` (by value) or `BY_REF` (by reference)
 4. `H` - **H**ash - provide a hashing function for your elements (required)
 4. `C` - **C**ompare - provide a comparing function for your elements - if none provided, default to `memcmp`
 5. `F` - **F**ree - provide a freeing function for your elements, if available
  
 ## Examples
-- [example int](examples/example_int.c)
-- [example person](examples/example_person.c)
+- [example int](examples/example_int.c) `BY_VAL`, no `C` and no `F` provided
+- [example person](examples/example_person.c) `BY_REF`, `C` and `F` provided
 - I also used this lookup table in my [Timers interpreter](https://github.com/rphii/TimersInterpreter)
 
 ## Design Considerations
