@@ -46,9 +46,9 @@ The `A##` means the `A` specified in the two macros.
 - `A##_add_count` add a specified number of counts to a value
 - `A##_del` delete a value
 - `A##_has` check if a value exists
-- `A##find` find position `i` and `j` of a value (to access in lookup table: `N.buckets[i].items[j]`)
+- `A##_find` find position `i` and `j` of a value (to access in lookup table: `N.buckets[i].items[j]`)
 - `A##_free` free lookup table
-- `A##_clearn` clear lookup table (reset but don't free)
+- `A##_clear` clear lookup table (reset but don't free)
 - `A##_dump` dump everything unsorted (`arr` is required, `counts` is optional)
 
 # todo so I don't forget
