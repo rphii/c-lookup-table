@@ -1,0 +1,10 @@
+*.swp
+*.o
+*.d
+*.out
+*.txt
+examples/bin/*
+examples/obj/*
+*.sh
+*.vim
+
