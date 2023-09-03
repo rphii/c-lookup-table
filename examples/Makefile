@@ -46,12 +46,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%$(CSUFFIX) Makefile | $(OBJ_DIR)
 # EXAMPLES #####################################################################
 ################################################################################
 
-EXAMPLE_PERSON := example_person.o lutd_person.o person.o
-$(BIN_DIR)/example_person: $(addprefix $(OBJ_DIR)/,$(EXAMPLE_PERSON)) | $(BIN_DIR)
+EX_FILES := example_person.o lutd_person.o person.o
+$(BIN_DIR)/example_person: $(addprefix $(OBJ_DIR)/,$(EX_FILES)) | $(BIN_DIR)
 	$(call link $@ $^)
 
-EXAMPLE_INT	:= example_int.o lutd_int.o
-$(BIN_DIR)/example_int: $(addprefix $(OBJ_DIR)/,$(EXAMPLE_INT)) | $(BIN_DIR)
+EX_FILES := example_int.o lutd_int.o
+$(BIN_DIR)/example_int: $(addprefix $(OBJ_DIR)/,$(EX_FILES)) | $(BIN_DIR)
 	$(call link $@ $^)
 
 ################################################################################
