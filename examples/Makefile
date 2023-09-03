@@ -18,7 +18,7 @@ D_FILES := $(addprefix $(OBJ_DIR)/,$(notdir $(C_FILES:$(CSUFFIX)=.d)))
 JOBS := example_person example_int
 TARGETS := $(addprefix $(BIN_DIR)/,$(JOBS))
 
-.phony: all clean list bin obj $(JOBS)
+.phony: all clean list bin obj $(JOBS) $(TARGETS)
 
 all: $(TARGETS)
 
@@ -27,7 +27,7 @@ bin:
 obj:
 	mkdir $(OBJ_DIR)
 list:
-	@echo $(JOBS)
+	@echo $(TARGETS)
 
 # depend on include files
 -include $(D_FILES)
