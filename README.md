@@ -18,6 +18,10 @@ LUTD_IMPLEMENT(N, A, T, M, H, C, F);
 4. `H` - **H**ash - provide a hashing function for your elements (required)
 4. `C` - **C**ompare - provide a comparing function for your elements - if none provided, default to `memcmp`
 5. `F` - **F**ree - provide a freeing function for your elements, if available
+
+The lookup table only stores how many times something with an equal hash has been added.
+If something was added a second time, it will only increase the count, and *not* copy the data into
+the table.
  
 ## Examples
 - [example int](examples/example_int.c) `BY_VAL`, no `C` and no `F` provided
