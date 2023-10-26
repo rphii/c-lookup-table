@@ -22,11 +22,13 @@ LUTD_IMPLEMENT(N, A, T, M, H, C, F);
 The lookup table only stores how many times something with an equal hash has been added.
 If something was added a second time, it will only increase the count, and *not* copy the data into
 the table.
- 
+
 ## Examples
 - [example int](examples/example_int.c) `BY_VAL`, no `C` and no `F` provided
 - [example person](examples/example_person.c) `BY_REF`, `C` and `F` provided
 - I also used this lookup table in my [Timers interpreter](https://github.com/rphii/TimersInterpreter) (`BY_REF`, `C` provided but no `F` provided)
+- to compile run `make` (have to be in the examples directory)
+- to clean run `make clean` (if you're on cygwin, run `OS= make clean`
 
 ## Design Considerations
 - Both `BY_VAL` and `BY_REF` can be used on either basic types or (complex) structs.
