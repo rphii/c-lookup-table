@@ -95,13 +95,13 @@ list:
 ### Cleaning ###################################################################
 ################################################################################
 ifeq ($(OS),Windows_NT)
-# Cleaning rules for Windows OS
+# Cleaning rules for Windows OS (no clue if this works)
 clean:
 	@del /q $(OBJ_DIR), $(TARGETS), $(BIN_DIR)
 	@rmdir $(OBJ_DIR)
 	@rmdir $(BIN_DIR)
 else
-# Cleaning rules for Unix-based OS (no clue if this works)
+# Cleaning rules for Unix-based OS
 clean:
 	@rm -rf $(OBJ_DIR) $(TARGETS) $(BIN_DIR)
 endif
