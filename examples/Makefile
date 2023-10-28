@@ -9,18 +9,16 @@ CC	  := gcc
 LDFLAGS := #-rdynamic -pg \
 		   #-fsanitize=address
 CFLAGS  := -Wall -Wextra \
-		   -O3 -march=native -Werror \
+		   -O3 -march=native \
 		   #-rdynamic -pg \
 		   #-fsanitize=address
 
 BIN_DIR := bin
 OBJ_DIR := obj
 CSUFFIX := .c
-JOBS := example_person example_int
+JOBS    := example_person example_int
 TARGETS := $(addprefix $(BIN_DIR)/,$(addsuffix $(XSUFFIX),$(JOBS)))
-
 .phony: all clean list bin obj $(JOBS) $(TARGETS)
-
 
 ### LINKING FUNCTION : $(call link,LDFLAGS,EXECUTABLE,PATH/TO/FILE.o PATH/TO/ANOTHERFILE.o)
 # arguments
@@ -36,10 +34,11 @@ endef
 # arguments
 # 1: [IN]  compile options (CFLAGS)
 # 2: [OUT] object directory
-# 3: [IN]  path/to/file.c
-define compile
-	@echo compile : $3
-	@$(CC) $1 -DVERSION=\"$(GIT_VERSION)\" -c -MMD -MP -o $(addprefix $2/,$(notdir $(basename $3)).o) $3
+# 3: [IN]  src/folder
+define compile_job
+$2/%.o: $3/%.c Makefile | $2
+	@echo compile : $$<
+	@$$(CC) $1 -DVERSION=\"$$(GIT_VERSION)\" -c -MMD -MP -o $$(addprefix $2/,$$(notdir $$(basename $$<)).o) $$<
 endef
 
 ### CREATE BINARY FUNCTION : $(call CFLAGS,LDFLAGS,OBJ_DIR,BIN_PATH,PATH/TO/FILE.c PATH/TO/ANOTHERFILE.c)
@@ -50,35 +49,43 @@ endef
 # 4: [OUT] binary path
 # 5: [IN]  source files
 define binary
-BIN_DIR := $$(dir $4)
-BIN_DIR := $$(BIN_DIR:/=)
+BIN_DIR := $$(patsubst %/,%,$$(dir $4))
 OBJ_DIR := $3
 C_FILES := $5
+C_DIRS  := $$(patsubst %/,%,$$(dir $$(C_FILES)))
 O_FILES := $$(addprefix $$(OBJ_DIR)/,$$(addsuffix .o,$$(notdir $$(basename $$(C_FILES)))))
 D_FILES := $$(addprefix $$(OBJ_DIR)/,$$(addsuffix .d,$$(notdir $$(basename $$(C_FILES)))))
 
 -include $$(D_FILES)
 
-# compile any .c files
-$$(OBJ_DIR)/%.o: %.c Makefile | $$(OBJ_DIR)
-	$$(call compile,$1,$$(OBJ_DIR),$$<)
+ifeq ($$(RULE_$$(BIN_DIR)),)
+RULE_$$(BIN_DIR) := 1
+$$(BIN_DIR):
+	mkdir -p $$(BIN_DIR)
+endif
 
-# link executable
+ifeq ($$(RULE_$$(OBJ_DIR)),)
+RULE_$$(OBJ_DIR) := 1
+$$(OBJ_DIR):
+	mkdir -p $$(OBJ_DIR)
+endif
+
+$$(foreach SRC,$$(C_DIRS),$$(eval $$(call compile_job,$1,$$(OBJ_DIR),$$(SRC))))
+
 $4$$(XSUFFIX): $$(O_FILES) | $$(BIN_DIR)
 	$$(call link,$2,$$@,$$^)
 
 endef
 
 all: $(TARGETS)
-
 $(eval $(call binary,$(CFLAGS),$(LDFLAGS),$(OBJ_DIR),bin/example_person,example_person.c lutd_person.c person.c))
 $(eval $(call binary,$(CFLAGS),$(LDFLAGS),$(OBJ_DIR),bin/example_int,example_int.c lutd_int.c))
 
-$(BIN_DIR):
-	mkdir $(BIN_DIR)
-
-$(OBJ_DIR):
-	mkdir $(OBJ_DIR)
+#$(BIN_DIR):
+#	mkdir $(BIN_DIR)
+#
+#$(OBJ_DIR):
+#	mkdir $(OBJ_DIR)
 
 list:
 	@echo possible binaries
@@ -97,5 +104,11 @@ else
 # Cleaning rules for Unix-based OS (no clue if this works)
 clean:
 	@rm -rf $(OBJ_DIR) $(TARGETS) $(BIN_DIR)
+endif
+
+ifeq ($(OS),Windows_NT)
+ifeq ($(XSUFFIX),)
+	XSUFFIX := .exe
+endif
 endif
 
