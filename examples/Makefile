@@ -36,7 +36,7 @@ endef
 # 2: [OUT] object directory
 # 3: [IN]  src/folder
 define compile_job
-$2/%.o: $3/%.c Makefile | $2
+$2/%.o: $3/%$(CSUFFIX) Makefile | $2
 	@echo compile : $$<
 	@$$(CC) $1 -DVERSION=\"$$(GIT_VERSION)\" -c -MMD -MP -o $$(addprefix $2/,$$(notdir $$(basename $$<)).o) $$<
 endef
