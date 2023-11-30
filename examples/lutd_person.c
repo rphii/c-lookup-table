@@ -23,7 +23,7 @@ static inline int lut_person_r_cmp(Person *a, Person *b)
 }
 
 LUTD_IMPLEMENT(LutPersonR, lut_person_r, Person, BY_REF, \
-        lut_person_r_hash, lut_person_r_cmp, person_free);
+        lut_person_r_hash, lut_person_r_cmp, person_free)
 
 static inline size_t lut_person_v_hash(Person a)
 {
@@ -42,5 +42,5 @@ static inline int lut_person_v_cmp(Person a, Person b)
 }
 
 LUTD_IMPLEMENT(LutPersonV, lut_person_v, Person, BY_VAL, \
-        lut_person_v_hash, lut_person_v_cmp, person_free);
+        lut_person_v_hash, lut_person_v_cmp, person_free)
 

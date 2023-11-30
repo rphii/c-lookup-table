@@ -5,10 +5,10 @@ endif
 endif
 
 GIT_VERSION := "$(shell git describe --abbrev=4 --dirty --always --tags)"
-CC	  := gcc
+CC	  := tcc
 LDFLAGS := #-rdynamic -pg \
 		   #-fsanitize=address
-CFLAGS  := -Wall -Wextra \
+CFLAGS  := -Wall -Wextra -Wpedantic \
 		   -O3 -march=native \
 		   #-rdynamic -pg \
 		   #-fsanitize=address

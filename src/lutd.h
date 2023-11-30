@@ -42,10 +42,12 @@ typedef enum {
 
 #define LUTD_DEFAULT_SIZE    4
 //#define LUTD_TYPE_FREE(F)    (void (*)(void *))(F)
-#define LUTD_TYPE_CMP(T, M, C)  (int (*)(LUTD_ITEM(T, M), LUTD_ITEM(T, M)))C
+//#define LUTD_TYPE_CMP(T, M, C)  (int (*)(LUTD_ITEM(T, M), LUTD_ITEM(T, M)))C
 
 #define LUTD_CAST_FREE(X)        ((void *)(X))
 #define LUTD_TYPE_FREE(F,X,T)    ((void (*)(T *))(F))(LUTD_CAST_FREE(X))
+
+#define LUTD_TYPE_CMP(C,A,B,T,M)   ((int (*)(LUTD_ITEM(T,M), LUTD_ITEM(T,M)))(C))(A, B)
 
 /* N = name
  * A = abbreviation
@@ -94,35 +96,34 @@ typedef enum {
     int A##_dump(N *l, LUTD_ITEM(T, M) **arr, size_t **counts, size_t *len);
 
 #define LUTD_IMPLEMENT(N, A, T, M, H, C, F) \
-    STATIC_ASSERT(H != 0, "missing hash function"); \
-    LUTD_IMPLEMENT_COMMON_STATIC_CMP(N, A, T, M, C, F); \
-    LUTD_IMPLEMENT_##M(N, A, T, H, C, F); \
+    /*STATIC_ASSERT(H != 0, "missing hash function");*/ \
+    LUTD_IMPLEMENT_##M(N, A, T, H, C, F) \
     /*LUTD_IMPLEMENT_COMMON_STATIC_THREAD_JOIN(N, A, T, C, F);*/ \
     /*LUTD_IMPLEMENT_COMMON_JOIN(N, A, T, C, F);*/ \
-    LUTD_IMPLEMENT_COMMON_INIT(N, A, T, C, F); \
-    LUTD_IMPLEMENT_COMMON_CLEAR(N, A, T, C, F); \
-    LUTD_IMPLEMENT_COMMON_ADD(N, A, T, M, H, C, F); \
-    LUTD_IMPLEMENT_COMMON_ADD_COUNT(N, A, T, M, H, C, F); \
-    LUTD_IMPLEMENT_COMMON_HAS(N, A, T, M, H, C, F); \
-    LUTD_IMPLEMENT_COMMON_FIND(N, A, T, M, H, C, F); \
-    LUTD_IMPLEMENT_COMMON_DEL(N, A, T, M, H, C, F); \
-    LUTD_IMPLEMENT_COMMON_DUMP(N, A, T, M, C, F); \
+    LUTD_IMPLEMENT_COMMON_INIT(N, A, T, C, F) \
+    LUTD_IMPLEMENT_COMMON_CLEAR(N, A, T, C, F) \
+    LUTD_IMPLEMENT_COMMON_ADD(N, A, T, M, H, C, F) \
+    LUTD_IMPLEMENT_COMMON_ADD_COUNT(N, A, T, M, H, C, F) \
+    LUTD_IMPLEMENT_COMMON_HAS(N, A, T, M, H, C, F) \
+    LUTD_IMPLEMENT_COMMON_FIND(N, A, T, M, H, C, F) \
+    LUTD_IMPLEMENT_COMMON_DEL(N, A, T, M, H, C, F) \
+    LUTD_IMPLEMENT_COMMON_DUMP(N, A, T, M, C, F) \
 
 #define LUTD_IMPLEMENT_BY_VAL(N, A, T, H, C, F) \
     LUTD_IMPLEMENT_BY_VAL_RESERVE(N, A, T, H, C, F) \
-    LUTD_IMPLEMENT_BY_VAL_FREE(N, A, T, C, F); \
+    LUTD_IMPLEMENT_BY_VAL_FREE(N, A, T, C, F) \
 
 #define LUTD_IMPLEMENT_BY_REF(N, A, T, H, C, F) \
     LUTD_IMPLEMENT_BY_REF_RESERVE(N, A, T, H, C, F) \
-    LUTD_IMPLEMENT_BY_REF_FREE(N, A, T, C, F); \
+    LUTD_IMPLEMENT_BY_REF_FREE(N, A, T, C, F) \
 
 /* implementation for both */
 
 /*#define LUTD_IMPLEMENT_COMMON_STATIC_F(N, A, T, F) \
      static void (*A##_static_f)(void *) = F != 0 ? LUTD_TYPE_FREE(F) : 0; \*/
 
-#define LUTD_IMPLEMENT_COMMON_STATIC_CMP(N, A, T, M, C, F) \
-    static int (*A##_static_cmp)(LUTD_ITEM(T, M), LUTD_ITEM(T, M)) = C != 0 ? LUTD_TYPE_CMP(T, M, C) : 0;
+/*#define LUTD_IMPLEMENT_COMMON_STATIC_CMP(N, A, T, M, C, F) \
+    int (*A##_static_cmp)(LUTD_ITEM(T, M), LUTD_ITEM(T, M)) = C != 0 ? LUTD_TYPE_CMP(T, M, C) : 0;*/
 
 /******************************************************************************/
 /* PUBLIC FUNCTION IMPLEMENTATIONS ********************************************/
@@ -268,7 +269,7 @@ typedef enum {
         size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
-            if(A##_static_cmp != 0) { if(A##_static_cmp(l->buckets[hash].items[exist_index], v)) continue; } \
+            if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
             else { if(memcmp(&l->buckets[hash].items[exist_index], &v, sizeof(v))) continue; } \
             exists = true; \
             break; \
@@ -293,7 +294,7 @@ typedef enum {
         size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
-            if(A##_static_cmp) { if(A##_static_cmp(l->buckets[hash].items[exist_index], v)) continue; } \
+            if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
             else { if(memcmp(&l->buckets[hash].items[exist_index], &v, sizeof(v))) continue; } \
             exists = true; \
             break; \
@@ -311,7 +312,7 @@ typedef enum {
         size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
-            if(A##_static_cmp) { if(A##_static_cmp(l->buckets[hash].items[exist_index], v)) continue; } \
+            if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
             else { if(memcmp(&l->buckets[hash].items[exist_index], &v, sizeof(v))) continue; } \
             *i = hash; \
             *j = exist_index; \
@@ -421,7 +422,7 @@ typedef enum {
         size_t hash = H(v) % (1UL << (l->width - 1)); \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
-            if(A##_static_cmp) { if(A##_static_cmp(l->buckets[hash].items[exist_index], v)) continue; } \
+            if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
             else { if(memcmp(&l->buckets[hash].items[exist_index], &v, sizeof(v))) continue; } \
             exists = true; \
             break; \
