@@ -38,7 +38,7 @@ endef
 define compile_job
 $2/%.o: $3/%$(CSUFFIX) Makefile | $2
 	@echo compile : $$<
-	@$$(CC) $1 -DVERSION=\"$$(GIT_VERSION)\" -c -MMD -MP -o $$(addprefix $2/,$$(notdir $$(basename $$<)).o) $$<
+	@$$(CC) $1 -DVERSION=\"$$(GIT_VERSION)\" -c -MMD -o $$(addprefix $2/,$$(notdir $$(basename $$<)).o) $$<
 endef
 
 ### CREATE BINARY FUNCTION : $(call CFLAGS,LDFLAGS,OBJ_DIR,BIN_PATH,PATH/TO/FILE.c PATH/TO/ANOTHERFILE.c)
