@@ -26,7 +26,8 @@ the table.
 ## Examples
 - [example int](examples/example_int.c) `BY_VAL`, no `C` and no `F` provided
 - [example person](examples/example_person.c) `BY_REF`, `C` and `F` provided
-- I also used this lookup table in my [Timers interpreter](https://github.com/rphii/TimersInterpreter) (`BY_REF`, `C` provided but no `F` provided)
+- I used this lookup table in my [Timers interpreter](https://github.com/rphii/TimersInterpreter) (`BY_REF`, `C` provided but no `F` provided)
+- This lookup table is extensively used in [c-nexus](https://github.com/rphii/c-nexus) and [c-file-tagger](https://github.com/rphii/c-file-tagger) and provides the base for my string [c-string](https://github.com/rphii/c-string).
 - to compile run `make` (have to be in the examples directory)
 - to clean run `make clean` (if you're on cygwin, run `OS= make clean`
 
@@ -56,6 +57,7 @@ The `A##` means the `A` specified in the two macros.
 - `A##_free` free lookup table
 - `A##_clear` clear lookup table (reset but don't free)
 - `A##_dump` dump everything unsorted (`arr` is required, `counts` is optional)
+- `A##_clear` check if table is empty
 
 # todo so I don't forget
 - `A##_join` and `A##_join_threaded` ...
