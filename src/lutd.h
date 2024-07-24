@@ -38,6 +38,7 @@ typedef enum {
     LUTD_ERROR_MALLOC = -1,
     LUTD_ERROR_REALLOC = -2,
     LUTD_ERROR_EXPECT_NULL = -3,
+    LUTD_ERROR_INIT = -4,
 } LUTDErrorList;
 
 #define LUTD_DEFAULT_SIZE    4
@@ -99,7 +100,7 @@ typedef enum {
     void A##_free(N *l); \
     int A##_clear(N *l); \
     int A##_dump(N *l, LUTD_ITEM(T, M) **arr, size_t **counts, size_t *len); \
-    int A##_empty(N *l);
+    bool A##_empty(N *l);
 
 #define LUTD_IMPLEMENT(N, A, T, M, H, C, F) \
     LUTD_IMPLEMENT_##M(N, A, T, H, C, F); \
@@ -155,9 +156,9 @@ typedef enum {
 #define LUTD_IMPLEMENT_BY_VAL_FREE(N, A, T, C, F) \
     void A##_free(N *l) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         if(!l->width) return; \
-        for(size_t i = 0; i < 1UL << (l->width - 1); i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             for(size_t j = 0; j < l->buckets[i].cap; j++) { \
                 /* NOTE this is ugly, provide a way to give a clear function for sub items... */ \
                 if(F != 0) LUTD_TYPE_FREE(F, &l->buckets[i].items[j], T); \
@@ -165,7 +166,7 @@ typedef enum {
             free(l->buckets[i].items); \
             free(l->buckets[i].count); \
         } \
-        memset(l->buckets, 0, sizeof(*l->buckets) * (1UL << l->width)); \
+        memset(l->buckets, 0, sizeof(*l->buckets) * (1ULL << (l->width - 1))); \
         free(l->buckets); \
         memset(l, 0, sizeof(*l)); \
     }
@@ -201,9 +202,9 @@ typedef enum {
 #define LUTD_IMPLEMENT_BY_REF_FREE(N, A, T, C, F) \
     void A##_free(N *l) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         if(!l->width) return; \
-        for(size_t i = 0; i < 1UL << (l->width - 1); i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             for(size_t j = 0; j < l->buckets[i].cap; j++) { \
                 /* NOTE this is ugly, provide a way to give a clear function for sub items... */ \
                 if(F != 0) LUTD_TYPE_FREE(F, l->buckets[i].items[j], T); \
@@ -212,7 +213,7 @@ typedef enum {
             free(l->buckets[i].items); \
             free(l->buckets[i].count); \
         } \
-        memset(l->buckets, 0, sizeof(*l->buckets) * (1UL << l->width)); \
+        memset(l->buckets, 0, sizeof(*l->buckets) * (1ULL << (l->width - 1))); \
         free(l->buckets); \
         memset(l, 0, sizeof(*l)); \
     }
@@ -222,14 +223,14 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_INIT(N, A, T, C, F) \
     int A##_init(N *l, size_t width) \
     { \
-        assert(l); \
-        assert(width < 8 * sizeof(size_t)); \
+        LUTD_ASSERT_REAL(l); \
+        LUTD_ASSERT_REAL(width < 8 * sizeof(size_t)); \
         /*A##_clear(l);*/ \
-        void *temp = realloc(l->buckets, sizeof(*l->buckets) * (1UL << width)); \
+        void *temp = realloc(l->buckets, sizeof(*l->buckets) * (1ULL << (width - 1))); \
         if(!temp) return -1; \
         l->buckets = temp; \
         l->width = width; \
-        for(size_t i = 0; i < 1UL << width; i++) { \
+        for(size_t i = 0; i < 1ULL << (width - 1); i++) { \
             memset(&l->buckets[i], 0, sizeof(l->buckets[i])); \
         } \
         return 0; \
@@ -238,9 +239,9 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_CLEAR(N, A, T, C, F) \
     int A##_clear(N *l) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         if(!l->width) return 0; \
-        for(size_t i = 0; i < 1UL << l->width; i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             for(size_t j = 0; j < l->buckets[i].cap; j++) { \
                 /* NOTE this is ugly, provide a way to give a clear function for sub items... */ \
                 if(F != 0) LUTD_TYPE_FREE(F, &l->buckets[i].items[j], T); \
@@ -253,7 +254,7 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_ADD(N, A, T, M, H, C, F) \
     int A##_add(N *l, LUTD_ITEM(T, M) v) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         LUTD_ASSERT(M, v); \
         int result = A##_add_count(l, v, 1); \
         return result; \
@@ -262,10 +263,12 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_ADD_COUNT(N, A, T, M, H, C, F) \
     int A##_add_count(N *l, LUTD_ITEM(T, M) v, size_t count) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         LUTD_ASSERT(M, v); \
+        LUTD_ASSERT_INIT(l); \
+        if(!l->width) return LUTD_ERROR_INIT; \
         bool exists = false; \
-        size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
+        size_t hash = H(v) % (1ULL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
             if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
@@ -288,11 +291,12 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_HAS(N, A, T, M, H, C, F) \
     bool A##_has(N *l, LUTD_ITEM(T, M) v) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         LUTD_ASSERT(M, v); \
         LUTD_ASSERT_INIT(l); \
+        if(!l->width) return false; \
         bool exists = false; \
-        size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
+        size_t hash = H(v) % (1ULL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
             if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
@@ -306,11 +310,13 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_FIND(N, A, T, M, H, C, F) \
     int A##_find(N *l, LUTD_ITEM(T, M) v, size_t *i, size_t *j) \
     { \
-        assert(l); \
-        assert(i); \
-        assert(j); \
+        LUTD_ASSERT_REAL(l); \
+        LUTD_ASSERT_REAL(i); \
+        LUTD_ASSERT_REAL(j); \
         LUTD_ASSERT(M, v); \
-        size_t hash = H(v) % (1UL << (l->width - 1)); /* TODO this is stupid. */ \
+        LUTD_ASSERT_INIT(l); \
+        if(!l->width) return LUTD_ERROR_INIT; \
+        size_t hash = H(v) % (1ULL << (l->width - 1)); /* TODO this is stupid. */ \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
             if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
@@ -334,10 +340,10 @@ typedef enum {
         pthread_mutex_t *mutex; \
     } Thread##A##Join; \
     void *A##_static_thread_join(void *args) { \
-        assert(args); \
+        LUTD_ASSERT_REAL(args); \
         Thread##A##Join *tj = args; \
         int result = 0; \
-        if(tj->i_bucket >= 1UL << tj->src->width) { \
+        if(tj->i_bucket >= 1ULL << (tj->src->width - 1)) { \
             return 0; /* TODO return proper code!? */ \
         } \
         for(size_t j = 0; j < tj->src->buckets[tj->i_bucket].len; j++) { \
@@ -355,9 +361,9 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_JOIN(N, A, T, C, F) \
     int A##_join(N *l, N *arr, size_t n) \
     { \
-        assert(l); \
-        assert(arr); \
-        assert(l->width); \
+        LUTD_ASSERT_REAL(l); \
+        LUTD_ASSERT_REAL(arr); \
+        LUTD_ASSERT_REAL(l->width); \
         pthread_t thread_ids[N_THREADS] = {0}; \
         pthread_attr_t thread_attr; \
         pthread_attr_init(&thread_attr); \
@@ -366,8 +372,8 @@ typedef enum {
         pthread_mutex_init(&thread_mutex, 0); \
         Thread##A##Join tj[N_THREADS] = {0}; \
         for(size_t k = 0; k < n; k++) { \
-            assert(arr[k].width == l->width); \
-            for(size_t i = 0; i < 1ULL << l->width; i += N_THREADS) { \
+            LUTD_ASSERT_REAL(arr[k].width == l->width); \
+            for(size_t i = 0; i < 1ULL << (l->width - 1); i += N_THREADS) { \
                 for(size_t j = 0; j < N_THREADS; j++) { \
                     tj[j].src = &arr[k]; \
                     tj[j].dst = l; \
@@ -396,13 +402,13 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_JOIN(N, A, T, C, F) \
     int A##_join(N *l, N *arr, size_t n) \
     { \
-        assert(l); \
-        assert(arr); \
-        assert(l->width); \
+        LUTD_ASSERT_REAL(l); \
+        LUTD_ASSERT_REAL(arr); \
+        LUTD_ASSERT_REAL(l->width); \
         int result = 0; \
         for(size_t k = 0; k < n; k++) { \
-            assert(arr[k].width == l->width); \
-            for(size_t i = 0; i < 1ULL << l->width; i++) { \
+            LUTD_ASSERT_REAL(arr[k].width == l->width); \
+            for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
                 for(size_t j = 0; j < arr[k].buckets[i].len; j++) { \
                     T item = arr[k].buckets[i].items[j]; \
                     size_t count = arr[k].buckets[i].count[j]; \
@@ -417,10 +423,10 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_DEL(N, A, T, M, H, C, F) \
     int A##_del(N *l, LUTD_ITEM(T, M) v) \
     { \
-        assert(l); \
+        LUTD_ASSERT_REAL(l); \
         LUTD_ASSERT(M, v); \
         bool exists = false; \
-        size_t hash = H(v) % (1UL << (l->width - 1)); \
+        size_t hash = H(v) % (1ULL << (l->width - 1)); \
         size_t exist_index = 0; \
         for(exist_index = 0; exist_index < l->buckets[hash].len; exist_index++) { \
             if(C != 0) { if(LUTD_TYPE_CMP(C, l->buckets[hash].items[exist_index], v, T, M)) continue; } \
@@ -454,11 +460,13 @@ typedef enum {
 #define LUTD_IMPLEMENT_COMMON_DUMP(N, A, T, M, C, F) \
     int A##_dump(N *l, LUTD_ITEM(T, M) **arr, size_t **counts, size_t *len) \
     { \
-        assert(l); \
-        assert(arr); \
-        assert(len); \
+        LUTD_ASSERT_REAL(l); \
+        LUTD_ASSERT_REAL(arr); \
+        LUTD_ASSERT_REAL(len); \
+        LUTD_ASSERT_INIT(l); \
+        if(!l->width) return LUTD_ERROR_INIT; \
         size_t used_total = 0; \
-        for(size_t i = 0; i < 1UL << l->width; i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             used_total += l->buckets[i].len; \
         } \
         if(*arr) return LUTD_ERROR_EXPECT_NULL; \
@@ -473,7 +481,7 @@ typedef enum {
         } \
         *len = used_total; \
         size_t used_index = 0; \
-        for(size_t i = 0; i < 1UL << l->width; i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             for(size_t j = 0; j < l->buckets[i].len; j++) { \
                 (*arr)[used_index] = l->buckets[i].items[j]; \
                 if(counts) { \
@@ -486,10 +494,10 @@ typedef enum {
     }
 
 #define LUTD_IMPLEMENT_COMMON_EMPTY(N, A, T, M, C, F) \
-    int A##_empty(N *l) { \
-        assert(l); \
+    bool A##_empty(N *l) { \
+        LUTD_ASSERT_REAL(l); \
         if(!l->width) return true; \
-        for(size_t i = 0; i < 1UL << (l->width - 1); i++) { \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
             for(size_t j = 0; j < l->buckets[i].cap; j++) { \
                 /* NOTE this is ugly, provide a way to give a clear function for sub items... */ \
                 if(l->buckets[i].count[j]) return false; \
