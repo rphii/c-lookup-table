@@ -5,7 +5,7 @@ endif
 endif
 
 GIT_VERSION := "$(shell git describe --abbrev=4 --dirty --always --tags)"
-CC	  := tcc
+CC	  := gcc
 LDFLAGS := #-rdynamic -pg \
 		   #-fsanitize=address
 CFLAGS  := -Wall -Wextra -Wpedantic \

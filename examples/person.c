@@ -19,7 +19,7 @@ int person_random(Person *person)
     person->age = rand() % 100;
     size_t name_len = rand() % 10 + 3;
     for(size_t i = 0; i < name_len; i++) {
-        result |= result ?: str_app(&person->name, "%c", rand() % ('Z' - 'A') + 'A');
+        result |= result ? 0 : str_app(&person->name, "%c", rand() % ('Z' - 'A') + 'A');
     }
     return result;
 }
