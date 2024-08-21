@@ -1,6 +1,6 @@
 #include "lutd_person.h"
 
-static inline size_t lut_person_r_hash(Person *a)
+static inline size_t lut_person_r_hash(const Person *a)
 {
     size_t hash = 5381;
     for(size_t i = 0; i < a->name.l; i++) {
@@ -10,7 +10,7 @@ static inline size_t lut_person_r_hash(Person *a)
     return hash;
 }
 
-static inline int lut_person_r_cmp(Person *a, Person *b)
+static inline int lut_person_r_cmp(const Person *a, const Person *b)
 {
     if(!a || !b) return -1;
     //printf("COMPARE ");

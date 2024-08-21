@@ -41,12 +41,17 @@ typedef enum {
     LUTD_ERROR_INIT = -4,
 } LUTDErrorList;
 
+#define ERR_LUTD_INIT "failed initializing lookup table"
+#define ERR_LUTD_ADD "failed adding item to lookup table"
+#define ERR_LUTD_FIND "failed finding node in lookup table"
+#define ERR_LUTD_DUMP "failed dumping lookup table"
+
 #define LUTD_DEFAULT_SIZE    4
 
 #define LUTD_CAST_FREE(X)        ((void *)(X))
 #define LUTD_TYPE_FREE(F,X,T)    ((void (*)(T *))(F))(LUTD_CAST_FREE(X))
 
-#define LUTD_TYPE_CMP(C,A,B,T,M)   ((int (*)(LUTD_ITEM(T,M), LUTD_ITEM(T,M)))(C))(A, B)
+#define LUTD_TYPE_CMP(C,A,B,T,M)   ((int (*)(const LUTD_ITEM(T,M), const LUTD_ITEM(T,M)))(C))(A, B)
 
 /* N = name
  * A = abbreviation
@@ -100,7 +105,8 @@ typedef enum {
     void A##_free(N *l); \
     int A##_clear(N *l); \
     int A##_dump(N *l, LUTD_ITEM(T, M) **arr, size_t **counts, size_t *len); \
-    bool A##_empty(N *l);
+    bool A##_empty(N *l); \
+    size_t A##_length(N *l);
 
 #define LUTD_IMPLEMENT(N, A, T, M, H, C, F) \
     LUTD_IMPLEMENT_##M(N, A, T, H, C, F); \
@@ -115,6 +121,7 @@ typedef enum {
     LUTD_IMPLEMENT_COMMON_DEL(N, A, T, M, H, C, F) \
     LUTD_IMPLEMENT_COMMON_DUMP(N, A, T, M, C, F) \
     LUTD_IMPLEMENT_COMMON_EMPTY(N, A, T, M, C, F) \
+    LUTD_IMPLEMENT_COMMON_LENGTH(N, A, T, M, C, F) \
 
 #define LUTD_IMPLEMENT_BY_VAL(N, A, T, H, C, F) \
     LUTD_IMPLEMENT_BY_VAL_RESERVE(N, A, T, H, C, F) \
@@ -139,10 +146,12 @@ typedef enum {
         size_t required = len ? len : LUTD_DEFAULT_SIZE;\
         while(required < cap) required *= 2; \
         if(required > len) { \
+            /* buckets */ \
             void *temp = realloc(l->buckets[hash].items, sizeof(T) * required); \
             if(!temp) return LUTD_ERROR_REALLOC; \
             l->buckets[hash].items = temp; \
             memset(&l->buckets[hash].items[exist_index], 0, sizeof(T) * (required - len)); \
+            /* counts */ \
             temp = realloc(l->buckets[hash].count, sizeof(size_t) * required); \
             if(!temp) return LUTD_ERROR_REALLOC; \
             l->buckets[hash].count = temp; \
@@ -180,6 +189,7 @@ typedef enum {
         size_t required = len ? len : LUTD_DEFAULT_SIZE;\
         while(required < cap) required *= 2; \
         if(required > len) { \
+            /* buckets */ \
             void *temp = realloc(l->buckets[hash].items, sizeof(T) * required); \
             if(!temp) return LUTD_ERROR_REALLOC; \
             l->buckets[hash].items = temp; \
@@ -189,6 +199,7 @@ typedef enum {
                 if(!l->buckets[hash].items[i]) return LUTD_ERROR_MALLOC; \
                 memset(l->buckets[hash].items[i], 0, sizeof(**l->buckets[hash].items)); \
             } \
+            /* counts */ \
             temp = realloc(l->buckets[hash].count, sizeof(size_t) * required); \
             if(!temp) return LUTD_ERROR_REALLOC; \
             l->buckets[hash].count = temp; \
@@ -505,6 +516,20 @@ typedef enum {
         } \
         return true; \
     }
+
+#define LUTD_IMPLEMENT_COMMON_LENGTH(N, A, T, M, C, F) \
+    size_t A##_length(N *l) { \
+        LUTD_ASSERT_REAL(l); \
+        if(!l->width) return 0; \
+        size_t result = 0; \
+        for(size_t i = 0; i < 1ULL << (l->width - 1); i++) { \
+            for(size_t j = 0; j < l->buckets[i].cap; j++) { \
+                result += (l->buckets[i].count[j]); \
+            } \
+        } \
+        return result; \
+    }
+
 
 #define LUTD_H
 #endif
