@@ -1,11 +1,10 @@
-#include "lut.h"
 #include "str.h"
-#include "luts.h"
+#include "lut.h"
 
 
 
-LUTS_INCLUDE(TrKV, trkv, Str, BY_REF, Str, BY_REF);
-LUTS_INCLUDE(TvKV, tvkv, Str, BY_VAL, Str, BY_VAL);
+LUT_INCLUDE(TrKV, trkv, Str, BY_REF, Str, BY_REF);
+LUT_INCLUDE(TvKV, tvkv, Str, BY_VAL, Str, BY_VAL);
 
 size_t str_hash2(const Str s)
 {
@@ -22,8 +21,8 @@ void str_free2(Str a)
     str_free(&a);
 }
 
-LUTS_IMPLEMENT(TrKV, trkv, Str, BY_REF, Str, BY_REF, str_hash, str_cmp, 0, 0);
-LUTS_IMPLEMENT(TvKV, tvkv, Str, BY_VAL, Str, BY_VAL, str_hash2, str_cmp2, str_free2, str_free2);
+LUT_IMPLEMENT(TrKV, trkv, Str, BY_REF, Str, BY_REF, str_hash, str_cmp, 0, 0);
+LUT_IMPLEMENT(TvKV, tvkv, Str, BY_VAL, Str, BY_VAL, str_hash2, str_cmp2, str_free2, str_free2);
 
 int main(void)
 {
