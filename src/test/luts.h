@@ -16,7 +16,7 @@
 #define LUTS_WIDTH_MIN                  3
 
 #define LUTS_SHIFT(width)               (width)
-#define LUTS_CAP(width)                 (!!width * (size_t)1ULL << LUT_SHIFT(width))
+#define LUTS_CAP(width)                 (!!width * (size_t)1ULL << LUTS_SHIFT(width))
 
 
 #define LUTS_TYPE_FREE(F,X,T,M)         ((void (*)(LUTS_ITEM(T,M)))(F))(X)
@@ -43,8 +43,8 @@
 
 #define LUTS_INCLUDE(N, A, TK, MK, TV, MV) \
     typedef struct N##Item { \
-        TK key; \
-        TV val; \
+        LUTS_ITEM(TK, MK) key; \
+        LUTS_ITEM(TV, MV) val; \
         size_t hash; \
     } N##Item; \
     typedef struct N { \
@@ -71,16 +71,18 @@
         LUTS_ASSERT_ARG(lut); \
         LUTS_ASSERT_ARG_M(key, MK); \
         size_t perturb = hash >> 5; \
-        size_t mask = ~(SIZE_MAX << LUT_SHIFT(lut->width)); \
+        size_t mask = ~(SIZE_MAX << LUTS_SHIFT(lut->width)); \
         size_t i = mask & hash; \
         N##Item **item = &lut->buckets[i]; \
         for(;;) { \
+            /*printff("  %zu", i);*/\
             if(!*item) break; \
-            if(intend_to_set && (*item)->hash == LUT_EMPTY) break; \
+            if(intend_to_set && (*item)->hash == LUTS_EMPTY) break; \
             if((*item)->hash == hash) { \
-                if(C != 0) { if(!LUTS_TYPE_CMP(C, LUTS_PTR(MK)(*item)->key, key, TK, MK)) return item; } \
+                if(C != 0) { if(!LUTS_TYPE_CMP(C, (*item)->key, key, TK, MK)) return item; } \
                 else { if(!memcmp(item, LUTS_REF(MK)key, sizeof(*LUTS_REF(MK)key))) return item; } \
             } \
+            perturb >>= 5; \
             i = mask & (i * 5 + perturb + 1); \
             /* get NEXT item */ \
             item = &lut->buckets[i]; \
@@ -91,10 +93,10 @@
 #define LUTS_IMPLEMENT_COMMON_FREE(N, A, TK, MK, TV, MV, H, C, FK, FV) \
     void A##_free(N *lut) { \
         ASSERT_ARG(lut); \
-        for(size_t i = 0; i < LUT_CAP(lut->width); ++i) { \
+        for(size_t i = 0; i < LUTS_CAP(lut->width); ++i) { \
             N##Item *item = lut->buckets[i]; \
-            if(FK != 0) LUTS_TYPE_FREE(FK, LUTS_PTR(MK)item->key, TK, MK); \
-            if(FV != 0) LUTS_TYPE_FREE(FV, LUTS_PTR(MV)item->val, TV, MV); \
+            if(FK != 0) LUTS_TYPE_FREE(FK, item->key, TK, MK); \
+            if(FV != 0) LUTS_TYPE_FREE(FV, item->val, TV, MV); \
             free(item); \
         } \
         free(lut->buckets); \
@@ -106,19 +108,19 @@
         LUTS_ASSERT_ARG(lut); \
         LUTS_ASSERT_REAL(width > lut->width, "expect larger new width then current"); \
         if(width <= lut->width) return -1; \
-        if(width < LUT_WIDTH_MIN) width = LUT_WIDTH_MIN; \
-        printff("NEW WIDTH %zu", width); \
+        if(width < LUTS_WIDTH_MIN) width = LUTS_WIDTH_MIN; \
+        /*printff("NEW WIDTH %zu", width);*/ \
         N grown = {0}; \
-        grown.buckets = malloc(sizeof(grown.buckets) * LUT_CAP(width)); \
+        grown.buckets = malloc(sizeof(grown.buckets) * LUTS_CAP(width)); \
         if(!grown.buckets) return -1; \
         grown.width = width; \
         grown.used = lut->used; \
-        memset(grown.buckets, 0, sizeof(grown.buckets) * LUT_CAP(width)); \
+        memset(grown.buckets, 0, sizeof(grown.buckets) * LUTS_CAP(width)); \
         /* re-add values */ \
-        for(size_t i = 0; i < LUT_CAP(lut->width); ++i) { \
+        for(size_t i = 0; i < LUTS_CAP(lut->width); ++i) { \
             N##Item *src = lut->buckets[i]; \
             if(!src) continue; \
-            if(src->hash == LUT_EMPTY) { \
+            if(src->hash == LUTS_EMPTY) { \
                 if(src) { \
                     /*str_free(src->val); \
                     str_free(src->key); \
@@ -128,7 +130,7 @@
                 continue; \
             } \
             size_t hash = src->hash; \
-            N##Item **item = A##_static_get_item(&grown, LUTS_PTR(MK)src->key, hash, true); \
+            N##Item **item = A##_static_get_item(&grown, src->key, hash, true); \
             *item = src; \
         } \
         free(lut->buckets); \
@@ -139,9 +141,10 @@
 
 #define LUTS_IMPLEMENT_COMMON_SET(N, A, TK, MK, TV, MV, H, C, FK, FV) \
     int A##_set(N *lut, LUTS_ITEM(TK, MK) key, LUTS_ITEM(TV, MV) val) { \
+        printff("setting..");\
         LUTS_ASSERT_ARG(lut); \
         LUTS_ASSERT_ARG_M(key, MK); \
-        if(2 * lut->used >= LUT_CAP(lut->width)) { \
+        if(2 * lut->used >= LUTS_CAP(lut->width)) { \
             if(A##_grow(lut, lut->width + 2)) return -1; \
         } \
         size_t hash = H(key); \
@@ -149,11 +152,42 @@
         if(*item) { \
             /* FREE OLD KEY */ \
         } else { \
-            *item = malloc(sizeof(**item)); \
+            size_t req = sizeof(**item); \
+            printff(" required %zu", req); \
+            if(LUTS_IS_BY_REF(MK)) { \
+                req += sizeof(*LUTS_REF(MK)(*item)->key); \
+                printff(" required %zu", req); \
+            } \
+            if(LUTS_IS_BY_REF(MV)) { \
+                req += sizeof(*LUTS_REF(MK)(*item)->val); \
+                printff(" required %zu", req); \
+            } \
+            *item = malloc(req); \
+            memset(*item, 0, sizeof(**item)); \
+            printff("malloced.. %p", *item);\
+            printff(" set0: %p <- %p", item, *item);\
             if(!*item) return -1; \
+            if(LUTS_IS_BY_REF(MK)) { \
+                void *p = (void *)*item + sizeof(**item) + 0; \
+                memset(p, 0, sizeof((*item)->key)); \
+                printff(" set1: %p <- %p (%zu)", &(*item)->key, p, sizeof((*item)->key));\
+                memcpy(&(*item)->key, &p, sizeof((*item)->key)); \
+            } \
+            if(LUTS_IS_BY_REF(MV)) { \
+                void *p = (void *)*item + sizeof(**item) + sizeof(*LUTS_REF(MK)(*item)->key); \
+                memset(p, 0, sizeof((*item)->val)); \
+                printff(" set2: %p <- %p (%zu)", &(*item)->val, p, sizeof((*item)->val));\
+                memcpy(&(*item)->val, &p, sizeof((*item)->val)); \
+            } \
+            printff("assed..");\
         } \
-        (*item)->key = *LUTS_REF(MK)key; \
-        (*item)->val = *LUTS_REF(MV)val; \
+        printff("%p", *item); \
+        printff("%p <- %p [%.*s]", LUTS_REF(MK)(*item)->key, LUTS_REF(MK)key, STR_F(LUTS_REF(MK)key));\
+        printff("%p <- %p [%.*s]", LUTS_REF(MV)(*item)->val, LUTS_REF(MV)val, STR_F(LUTS_REF(MV)val));\
+        memcpy(LUTS_REF(MK)(*item)->key, LUTS_REF(MK)key, sizeof(TK)); \
+        printff("crashed1..");\
+        memcpy(LUTS_REF(MV)(*item)->val, LUTS_REF(MV)val, sizeof(TV)); \
+        printff("crashed2..");\
         (*item)->hash = hash; \
         ++lut->used; \
         return 0; \
@@ -165,7 +199,7 @@
         LUTS_ASSERT_ARG_M(key, MK); \
         size_t hash = H(key); \
         N##Item *item = *A##_static_get_item(lut, key, hash, false); \
-        return item ? &item->val : 0; \
+        return item ? LUTS_REF(MV)item->val : 0; \
     }
 
 #define LUTS_IMPLEMENT_COMMON_DEL(N, A, TK, MK, TV, MV, H, C, FK, FV) \
@@ -175,7 +209,7 @@
         size_t hash = H(key); \
         N##Item *item = *A##_static_get_item(lut, key, hash, true); \
         if(item) { \
-            item->hash = LUT_EMPTY; \
+            item->hash = LUTS_EMPTY; \
             if(FK != 0) LUTS_TYPE_FREE(FK, LUTS_PTR(MK)item->key, TK, MK); \
             if(FV != 0) LUTS_TYPE_FREE(FV, LUTS_PTR(MV)item->val, TV, MV); \
         } \

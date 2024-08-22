@@ -13,7 +13,7 @@ static LutItem **static_lut_get_item(Lut *lut, Str *key, size_t hash, bool inten
         //printff("  n = %2zu  i = %2zi  [%.*s] [%.*s]", n, i, STR_F(&item->key), STR_F(&item->val));
         if(!*item) break;
         if(intend_to_set && (*item)->hash == LUT_EMPTY) break;
-        if((*item)->hash == hash && !str_cmp(&(*item)->key, key)) return item;
+        if((*item)->hash == hash && !str_cmp((*item)->key, key)) return item;
         i = mask & (i * 5 + perturb + 1);
         /* get NEXT item */
         item = &lut->buckets[i];
@@ -34,8 +34,8 @@ void lut_free(Lut *lut, bool sub)
     for(size_t i = 0; i < LUT_CAP(lut->width); ++i) {
         LutItem *item = lut->buckets[i];
         if(sub) {
-            str_free(&item->val);
-            str_free(&item->key);
+            str_free(item->val);
+            str_free(item->key);
         }
         free(item);
     }
@@ -69,7 +69,7 @@ int lut_grow(Lut *lut, size_t width)
             continue;
         }
         size_t hash = src->hash;
-        LutItem **item = static_lut_get_item(&new, &src->key, hash, true);
+        LutItem **item = static_lut_get_item(&new, src->key, hash, true);
         *item = src;
         //ASSERT(item, ERR_UNREACHABLE);
         //item->key = src->key;
@@ -100,11 +100,13 @@ int lut_set(Lut *lut, Str *key, Str *val)
     if(*item) {
         /* FREE OLD KEY */
     } else {
-        *item = malloc(sizeof(**item));
+        *item = malloc(sizeof(**item) + sizeof(Str) + sizeof(Str));
         if(!*item) return -1;
+        (*item)->key = (void *)item + sizeof(**item);
+        (*item)->val = (void *)item + sizeof(**item) + sizeof(Str);
     }
-    (*item)->key = *key;
-    (*item)->val = *val;
+    *(*item)->key = *key;
+    *(*item)->val = *val;
     (*item)->hash = hash;
     ++lut->used;
     return 0;
@@ -135,7 +137,7 @@ Str *lut_get(Lut *lut, Str *key)
     return 0;
 #endif
     //printff("item %p", item);
-    return item ? &item->val : 0;
+    return item ? item->val : 0;
 }
 
 void lut_del(Lut *lut, Str *key)

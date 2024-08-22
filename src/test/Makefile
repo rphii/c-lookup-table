@@ -17,12 +17,13 @@ endif
 
 
 GIT_VERSION := "$(shell git describe --abbrev=6 --always --tags 2>/dev/null)"
-CC      := gcc
+CC      := clang
 CFLAGS  := -Wall -Wextra -Wimplicit -Wfatal-errors -std=gnu2x \
 		   -Wno-unused-parameter \
 		   -DPROC_COUNT=$(shell nproc --all) \
 		   -Og -fsanitize=address -rdynamic -ggdb3 \
 		   ##############\
+		   -Og -rdynamic -ggdb3 \
 		   ${OPTIMIZE} $(JEMALLOC) \
 		   -DCOLORPRINT_DISABLE \
 		   -pg -rdynamic \
@@ -31,6 +32,7 @@ LDFLAGS := \
 		   -lm \
 		   -Og -fsanitize=address -rdynamic -ggdb3 \
 		   ##############\
+		   -Og -rdynamic -ggdb3 \
 		   ${OPTIMIZE} $(JEMALLOC) \
 		   -pg -rdynamic \
 		   ##############

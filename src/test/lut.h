@@ -28,8 +28,8 @@ typedef enum {
 #include "str.h"    // only include because this is an example draft
 
 typedef struct LutItem {
-    Str key;       // make this variable
-    Str val;       // make this variable
+    Str *key;       // make this variable
+    Str *val;       // make this variable
     size_t hash;
 } LutItem;
 
