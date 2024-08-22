@@ -141,7 +141,6 @@
 
 #define LUTS_IMPLEMENT_COMMON_SET(N, A, TK, MK, TV, MV, H, C, FK, FV) \
     int A##_set(N *lut, LUTS_ITEM(TK, MK) key, LUTS_ITEM(TV, MV) val) { \
-        printff("setting..");\
         LUTS_ASSERT_ARG(lut); \
         LUTS_ASSERT_ARG_M(key, MK); \
         if(2 * lut->used >= LUTS_CAP(lut->width)) { \
@@ -150,44 +149,33 @@
         size_t hash = H(key); \
         N##Item **item = A##_static_get_item(lut, key, hash, true); \
         if(*item) { \
-            /* FREE OLD KEY */ \
+            /* free old key */ \
+            if(FK != 0) LUTS_TYPE_FREE(FK, (*item)->key, TK, MK); \
+            if(FV != 0) LUTS_TYPE_FREE(FV, (*item)->val, TV, MV); \
         } else { \
             size_t req = sizeof(**item); \
-            printff(" required %zu", req); \
             if(LUTS_IS_BY_REF(MK)) { \
                 req += sizeof(*LUTS_REF(MK)(*item)->key); \
-                printff(" required %zu", req); \
             } \
             if(LUTS_IS_BY_REF(MV)) { \
                 req += sizeof(*LUTS_REF(MK)(*item)->val); \
-                printff(" required %zu", req); \
             } \
             *item = malloc(req); \
             memset(*item, 0, sizeof(**item)); \
-            printff("malloced.. %p", *item);\
-            printff(" set0: %p <- %p", item, *item);\
             if(!*item) return -1; \
             if(LUTS_IS_BY_REF(MK)) { \
                 void *p = (void *)*item + sizeof(**item) + 0; \
                 memset(p, 0, sizeof((*item)->key)); \
-                printff(" set1: %p <- %p (%zu)", &(*item)->key, p, sizeof((*item)->key));\
                 memcpy(&(*item)->key, &p, sizeof((*item)->key)); \
             } \
             if(LUTS_IS_BY_REF(MV)) { \
                 void *p = (void *)*item + sizeof(**item) + sizeof(*LUTS_REF(MK)(*item)->key); \
                 memset(p, 0, sizeof((*item)->val)); \
-                printff(" set2: %p <- %p (%zu)", &(*item)->val, p, sizeof((*item)->val));\
                 memcpy(&(*item)->val, &p, sizeof((*item)->val)); \
             } \
-            printff("assed..");\
         } \
-        printff("%p", *item); \
-        printff("%p <- %p [%.*s]", LUTS_REF(MK)(*item)->key, LUTS_REF(MK)key, STR_F(LUTS_REF(MK)key));\
-        printff("%p <- %p [%.*s]", LUTS_REF(MV)(*item)->val, LUTS_REF(MV)val, STR_F(LUTS_REF(MV)val));\
         memcpy(LUTS_REF(MK)(*item)->key, LUTS_REF(MK)key, sizeof(TK)); \
-        printff("crashed1..");\
         memcpy(LUTS_REF(MV)(*item)->val, LUTS_REF(MV)val, sizeof(TV)); \
-        printff("crashed2..");\
         (*item)->hash = hash; \
         ++lut->used; \
         return 0; \
